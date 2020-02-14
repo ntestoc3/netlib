@@ -9,12 +9,3 @@
       (= "局域网" (:county (get-location "127.0.0.1"))) => true
 
       )
-
-(fact "local global test"
-      (valid-local? "127.0.0.1") => true
-      (valid-local? "8.8.8.8") => false
-
-      (valid-global? "127.0.0.1") => false
-      (valid-global? "8.8.8.8") => true
-      (valid-global? "www.baidu.com") => true
-      )
