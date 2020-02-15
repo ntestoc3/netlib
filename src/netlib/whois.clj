@@ -82,9 +82,9 @@
          (let [lines (line-seq rdr)]
            (println (first lines))
            (doall (map (fn [tld]
-                         (log/trace :whois-get-tld tld)
+                         (log/info :whois-get-tld tld)
                          (try
-                           (get-whois-server-for-tld (str "." tld))
+                           (parse-iana-response (query iana-whois-server (str "." tld)))
                            (catch Exception e
                              (log/error :whois-get-tld tld))))
                        (rest lines)))))
@@ -98,6 +98,8 @@
                  slurp
                  read-string))
            (reset! tld-to-whois-server-map)))
+
+(defonce ___init___ (init-tlds!))
 
 (defn- get-tld-from-url
   "Extract TLD from a URL"
