@@ -4,7 +4,8 @@
   :license {:name "MIT"
             :url "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [ntestoc3/common "1.2.2-SNAPSHOT"]
+                 [ntestoc3/common "1.4.0-SNAPSHOT"]
+                 [com.grammarly/omniconf "0.4.1"] ;; config
 
                  [better-cond "2.1.0"]
                  [buddy/buddy-core "1.6.0"]                    ; crypt

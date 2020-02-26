@@ -2,10 +2,11 @@
   (:require [clojure.edn :as edn]
             [clojure.string :as str]
             [common.wrap :refer [with-exception-default]]
-            [common.config :as config]
+            [omniconf.core :as cfg]
             [netlib.util :refer [get-proxy]]
             [camel-snake-kebab.core :refer :all]
             [taoensso.timbre :as log]
+            [java-time]
             [clojure.java.io :as io]
             [me.raynes.fs :as fs]
             [common.fs-ext :as fs-ext])
@@ -106,6 +107,34 @@
   [url]
   (re-find #"\.\w+$" url))
 
+(defn- trans-result-field-type
+  [result]
+  (map (fn [[k v]]
+         (cond
+           (#{:name-server
+              } k)
+           [k v]
+
+           (= :domain-status k)
+           [k (map #(re-find #"^\w+" %) v)]
+           ;; 日期格式不统一
+           ;; (#{:updated-date
+           ;;    :creation-date
+           ;;    :registry-expiry-date
+           ;;    } k)
+           ;; [k (java-time/zoned-date-time (first v))]
+
+           ;; (#{:expiration-time
+           ;;    :registration-time
+           ;;    } k)
+           ;; [k (java-time/local-date-time "y-M-d H:m:s" (first v))]
+
+           (= 1 (count v))
+           [k (first v)]
+
+           :else [k v]))
+       result))
+
 (defn- format-result
   "格式化查询结果到map"
   [r]
@@ -113,6 +142,7 @@
        (group-by first)
        (map (fn [[k v]] [(->kebab-case-keyword k)
                          (map second v)]))
+       (trans-result-field-type)
        (into {})))
 
 (defn- parse-result
@@ -124,14 +154,20 @@
          format-result)))
 
 (defn whois
-  [url]
-  (let [tld (get-tld-from-url url)
-        whois-server (get-whois-server-for-tld tld)]
-    (log/info :whois url " with server:" whois-server)
-    (if whois-server
-      (-> (query whois-server url)
-          parse-result)
-      (log/error :whois "could not find whois server for TLD " tld))))
+  ([url] (let [tld (get-tld-from-url url)
+               whois-server (get-whois-server-for-tld tld)]
+           (if whois-server
+             (whois url whois-server)
+             (log/error :whois "could not find whois server for TLD " tld))))
+  ([url whois-server]
+   (log/info :whois url " with server:" whois-server)
+   (let [r (-> (query whois-server url)
+               parse-result)
+         new-whois-server (:registrar-whois-server r)]
+     (if (and new-whois-server
+              (not= new-whois-server whois-server))
+       (whois url new-whois-server)
+       r))))
 
 (defn get-name-servers
   "从whois结果中获取NS地址
