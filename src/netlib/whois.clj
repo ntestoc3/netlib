@@ -2,8 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.string :as str]
             [common.wrap :refer [with-exception-default]]
-            [omniconf.core :as cfg]
-            [netlib.util :refer [get-proxy]]
+            [netlib.util :refer [gen-proxy]]
             [camel-snake-kebab.core :refer :all]
             [taoensso.timbre :as log]
             [java-time]
@@ -19,26 +18,27 @@
 
 (defn- query
   "Wraps WhoisClient.query.
-  whois-endpoint is the whois server you want to query
+  whois-server is the whois server you want to query
   url is the domain name you want to look up
 
-  Examples:
-    (whois \"whois.nic.it\" \"google.it\")
-    (whois \"whois.iana.org\" \"com.\") -- this gets the whois server for the given tld
-  "
-  ([url] (query WhoisClient/DEFAULT_HOST url))
-  ([whois-endpoint url]
-   (let [wis (doto (WhoisClient.)
-               (.setProxy (get-proxy :whois-proxy))
-               (.setConnectTimeout 5000)
-               (.setDefaultTimeout 8000))]
-     (.connect wis whois-endpoint)
-     (let [ret (try (. wis query url)
-                    (catch java.io.IOException ex
-                      (log/warn :whois-query url ex)
-                      "Failed"))]
-       (.disconnect wis)
-       ret))))
+  whois-server 用于查询whois信息的whois服务器
+  proxy为代理, 参考`::util/proxy-spec` "
+  [url {:keys [whois-server conn-timeout default-timeout proxy]
+        :or {whois-server  WhoisClient/DEFAULT_HOST
+             conn-timeout 5000
+             default-timeout 8000}}]
+  (let [wis (doto (WhoisClient.)
+              (.setConnectTimeout conn-timeout)
+              (.setDefaultTimeout default-timeout))]
+    (when proxy
+      (.setProxy wis (gen-proxy proxy)))
+    (.connect wis whois-server)
+    (let [ret (try (. wis query url)
+                   (catch java.io.IOException ex
+                     (log/error :whois-query url)
+                     "Failed"))]
+      (.disconnect wis)
+      ret)))
 
 (defn- parse-iana-response
   "Parse the response from iana-whois-server"
@@ -60,7 +60,7 @@
   [tld]
   (if-let [whois-server (get @tld-to-whois-server-map tld)]
     whois-server
-    (:whois (parse-iana-response (query iana-whois-server tld)))))
+    (:whois (parse-iana-response (query tld {:whois-server iana-whois-server})))))
 
 (defn update-tld-maps
   ([tlds] (update-tld-maps tlds default-tld-file))
@@ -85,7 +85,8 @@
            (doall (map (fn [tld]
                          (log/info :whois-get-tld tld)
                          (try
-                           (parse-iana-response (query iana-whois-server (str "." tld)))
+                           (parse-iana-response (query (str "." tld)
+                                                       {:whois-server iana-whois-server}))
                            (catch Exception e
                              (log/error :whois-get-tld tld))))
                        (rest lines)))))
@@ -105,7 +106,8 @@
 (defn- get-tld-from-url
   "Extract TLD from a URL"
   [url]
-  (re-find #"\.\w+$" url))
+  (some-> (re-find #"\.\w+$" url)
+          str/lower-case))
 
 (defn- trans-result-field-type
   [result]
@@ -154,39 +156,38 @@
          format-result)))
 
 (defn whois
+  "`url` 要查询whois的域名
+  `opts` 可选参数，:whois-server 指定从whois server查询
+                 :conn-timeout 连接超时时间
+                 :default-timeout 默认超时时间
+                 :proxy 使用代理服务器"
   ([url] (let [tld (get-tld-from-url url)
                whois-server (get-whois-server-for-tld tld)]
            (if whois-server
-             (whois url whois-server)
+             (whois url {:whois-server whois-server})
              (log/error :whois "could not find whois server for TLD " tld))))
-  ([url whois-server]
-   (log/info :whois url " with server:" whois-server)
-   (let [r (-> (query whois-server url)
+  ([url opts]
+   (log/info :whois url " with server:" (:whois-server opts))
+   (let [r (-> (query url opts)
                parse-result)
          new-whois-server (:registrar-whois-server r)]
      (if (and new-whois-server
-              (not= new-whois-server whois-server))
-       (whois url new-whois-server)
+              (not= new-whois-server (:whois-server opts)))
+       (->> (assoc opts :whois-server new-whois-server)
+            (whois url))
        r))))
-
-(defn get-name-servers
-  "从whois结果中获取NS地址
-  (-> (whois \"bing.com)
-      get-name-servers)"
-  [r]
-  (map second (r "Name Server")))
 
 ;; ip whois
 (defn- get-rir-from-ip
   [ip]
-  (-> (query iana-whois-server ip)
+  (-> (query ip {:whois-server iana-whois-server})
       parse-iana-response
       :whois))
 
 (def arin-rir "whois.arin.net")
 (defn- arin-get-net
   [ip]
-  (let [q (query arin-rir (str "n " ip))]
+  (let [q (query (str "n " ip) {:whois-server arin-rir})]
     (-> (re-seq #"(?s)\((NET[-\d]+)\)" q)
         last
         second)))
@@ -214,7 +215,7 @@
   [rir ip]
   (log/debug "rir server: " rir " query ip: " ip)
   (let [net (arin-get-net ip)
-        r (query rir net)]
+        r (query net {:whois-server rir})]
     (-> (str-filter-line #"^#" r)
          parse-rip-lines)))
 
@@ -222,7 +223,7 @@
 (defmethod rir-query :default
   [rir ip]
   (log/debug "rir: " rir " query ip: " ip)
-  (let [r (query rir ip)]
+  (let [r (query ip {:whois-server rir})]
     (-> (str-filter-line #"^%" r)
         parse-rip-lines)))
 
