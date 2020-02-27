@@ -100,7 +100,9 @@
   [^Record rec]
   (let [rec-type (get-kw-from-lookup-type (.getType rec))
         address  ()]
-    {:type rec-type #_:class #_ (class rec) :name (.toString (.getName rec)) :ttl (.getTTL rec)}))
+    {:type rec-type #_:class #_ (class rec)
+     :name (.toString (.getName rec))
+     :ttl (.getTTL rec)}))
 
 (defprotocol ConvertibleToKWHashProtocol
   "Convertible to a keyword hash"
@@ -161,34 +163,38 @@
 (defn lookup
   "查找dns
   `domain` 要查找的域名
-  `kw-look-type` 查找的类型:a :mx等
 
   可选的option:
+  :type 查找的类型:a :mx 等,默认为:a
   :resolve 使用的解析服务器
   :extend-resolves 使用一组解析服务器
 
   如果无法解析，返回{:error 错误信息}
   "
-  [domain kw-look-type & {:keys [resolve extend-resolves]}]
-  (let [look-type (get-lookup-type kw-look-type)
-        l (Lookup. domain look-type)]
-    (.setCache l nil) ;; no cache
-    (when resolve
-      (log/trace "set resolve:" resolve)
-      (->> resolve
-           SimpleResolver.
-           (.setResolver l)))
-    (when extend-resolves
-      (log/trace "set resolves:" extend-resolves)
-      (->> extend-resolves
-           (into-array  String)
-           ExtendedResolver.
-           (.setResolver l)))
-    (let [r (.run l)
-          r-code (.getResult l)]
-      (if (= 0 r-code)
-        (mapv convert r)
-        {:error (.getErrorString l)}))))
+  ([domain] (lookup domain nil))
+  ([domain {:keys [resolve
+                   extend-resolves
+                   type]
+            :or {type :a}}]
+   (let [look-type (get-lookup-type type)
+         l (Lookup. domain look-type)]
+     (.setCache l nil) ;; no cache
+     (when resolve
+       (log/trace "set resolve:" resolve)
+       (->> resolve
+            SimpleResolver.
+            (.setResolver l)))
+     (when extend-resolves
+       (log/trace "set resolves:" extend-resolves)
+       (->> extend-resolves
+            (into-array  String)
+            ExtendedResolver.
+            (.setResolver l)))
+     (let [r (.run l)
+           r-code (.getResult l)]
+       (if (= 0 r-code)
+         (mapv convert r)
+         {:error (.getErrorString l)})))))
 
 (def dns-service (.createNameService (DNSJavaNameServiceDescriptor.)))
 (defn rev-lookup

@@ -185,12 +185,6 @@
       :whois))
 
 (def arin-rir "whois.arin.net")
-(defn- arin-get-net
-  [ip opts]
-  (let [q (query (str "n " ip) (assoc opts :whois-server arin-rir))]
-    (-> (re-seq #"(?s)\((NET[-\d]+)\)" q)
-        last
-        second)))
 
 (defmulti rir-query
   {:arglists '([rir ip opts])}
@@ -211,13 +205,13 @@
        (filter #(not (or (empty? %1)
                          (re-find re %1))))))
 
+
 (defmethod rir-query arin-rir
   [rir ip opts]
   (log/debug "rir server: " rir " query ip: " ip)
-  (let [net (arin-get-net ip opts)
-        r (query net (assoc opts :whois-server rir))]
+  (let [r (query (str "n " ip) (assoc opts :whois-server rir))]
     (-> (str-filter-line #"^#" r)
-         parse-rip-lines)))
+        parse-rip-lines)))
 
 ;; 其它几个地区注释都是%开头的
 (defmethod rir-query :default
