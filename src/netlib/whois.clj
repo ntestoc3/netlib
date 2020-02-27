@@ -179,21 +179,21 @@
 
 ;; ip whois
 (defn- get-rir-from-ip
-  [ip]
-  (-> (query ip {:whois-server iana-whois-server})
+  [ip opts]
+  (-> (query ip (assoc opts :whois-server iana-whois-server))
       parse-iana-response
       :whois))
 
 (def arin-rir "whois.arin.net")
 (defn- arin-get-net
-  [ip]
-  (let [q (query (str "n " ip) {:whois-server arin-rir})]
+  [ip opts]
+  (let [q (query (str "n " ip) (assoc opts :whois-server arin-rir))]
     (-> (re-seq #"(?s)\((NET[-\d]+)\)" q)
         last
         second)))
 
 (defmulti rir-query
-  {:arglists '([rir ip])}
+  {:arglists '([rir ip opts])}
   (fn [rir & _] rir))
 
 (defn parse-rip-lines
@@ -212,22 +212,28 @@
                          (re-find re %1))))))
 
 (defmethod rir-query arin-rir
-  [rir ip]
+  [rir ip opts]
   (log/debug "rir server: " rir " query ip: " ip)
-  (let [net (arin-get-net ip)
-        r (query net {:whois-server rir})]
+  (let [net (arin-get-net ip opts)
+        r (query net (assoc opts :whois-server rir))]
     (-> (str-filter-line #"^#" r)
          parse-rip-lines)))
 
 ;; 其它几个地区注释都是%开头的
 (defmethod rir-query :default
-  [rir ip]
+  [rir ip opts]
   (log/debug "rir: " rir " query ip: " ip)
-  (let [r (query ip {:whois-server rir})]
+  (let [r (query ip (assoc opts :whois-server rir))]
     (-> (str-filter-line #"^%" r)
         parse-rip-lines)))
 
 (defn whois-ip
-  [ip]
-  (-> (get-rir-from-ip ip)
-      (rir-query ip)))
+  "`ip` 要查询whois的ip地址字符串
+  `opts` 可选参数，:conn-timeout 连接超时时间
+                 :default-timeout 默认超时时间
+                 :proxy 使用代理服务器"
+
+  ([ip] (whois-ip ip nil))
+  ([ip opts]
+   (some-> (get-rir-from-ip ip opts)
+           (rir-query ip opts))))
