@@ -192,11 +192,11 @@
 
 (defn parse-rip-lines
   [rs]
-  (->> (map #(-> (re-find #"(\S[\S ]+?):\s+(\S[\S ]+)" %1)
-                 rest)
-            rs)
-       (filter first)
-       format-result))
+  (some->> (map #(-> (re-find #"(\S[\S ]+?):\s+(\S[\S ]+)" %1)
+                     rest)
+                rs)
+           (filter first)
+           format-result))
 
 (defn- str-filter-line
   "过滤字符串s中匹配re的行，或空行"
