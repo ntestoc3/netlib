@@ -4,23 +4,24 @@
             [clojure.data.zip.xml :refer [xml-> attr text]]
             [clojure.zip :as zip]
             [clojure.string :as string]
-            [clojure.java.shell :refer [sh]]
             [me.raynes.fs :as fs]
-            [taoensso.timbre :as log]))
+            [netlib.util :refer [shell]]
+            [taoensso.timbre :as log]
+            [clojure.string :as str]))
 
 (defn masscan
   [ip {:keys [rate port out-fname]
        :or {rate 100000
             port "0-65535"}}]
-  (sh "masscan" "-p" port "-oX" out-fname "--rate" (str rate) ip))
+  (shell "masscan" "-p" port "-oX" out-fname "--rate" (str rate) ip))
 
 (defn nmap
   [ip {:keys [port out-fname]
        :or {port "0-65535"}}]
-  (sc.api/spy (sh "nmap" "-v0" "-Pn" "--open"
-       "-p" port
-       "-sT" "-sV" "-oX" out-fname
-       ip)))
+  (shell "nmap" "-v0" "-Pn" "--open"
+         "-p" port
+      "-sT" "-sV" "-oX" out-fname
+      ip))
 
 (defn read-nmap-xml
   [fname]
@@ -87,7 +88,7 @@
   ([ip] (run-masscan ip nil))
   ([ip opts]
    (let [;; masscan的输出都在stderr中
-         out-fname (str "masscan_" ip ".xml")
+         out-fname (fs/temp-name "masscan_" ".xml")
          mass-r (masscan ip (assoc opts :out-fname out-fname))]
      (cond
        (not (zero? (:exit mass-r)))
@@ -102,7 +103,7 @@
 (defn run-nmap
   ([ip] (run-nmap ip nil))
   ([ip opts]
-   (let [out-fname (get opts :out-fname (str "nmap_" ip ".xml"))
+   (let [out-fname (get opts :out-fname (fs/temp-name "nmap_" ".xml"))
          nmap-r (nmap ip (assoc opts :out-fname out-fname))]
      (if (zero? (:exit nmap-r))
        (parse-nmap-xml out-fname)
@@ -117,4 +118,6 @@
   ([ip opts]
    (some->> (run-masscan ip opts)
             (mapcat  #(run-nmap (:ip %1)
-                                (assoc opts :port (get-ports %1)))))))
+                                (->> (get-ports %1)
+                                     (str/join ",")
+                                     (assoc opts :port)))))))

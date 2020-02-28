@@ -4,14 +4,14 @@
             [camel-snake-kebab.core :refer :all]
             [me.raynes.fs :as fs]
             [cheshire.core :as json]
-            [clojure.java.shell :refer [sh]]
+            [netlib.util :refer [shell]]
             [taoensso.timbre :as log]))
 
 
 
 (defn amass
   [domain json-out-fname]
-  (sh "amass" "enum" "-v" "-src" "-json" json-out-fname "-d" domain))
+  (shell "amass" "enum" "-v" "-src" "-json" json-out-fname "-d" domain))
 
 (defn parse-amass-out
   "解析amass输出"
