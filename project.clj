@@ -14,17 +14,13 @@
                  [com.cemerick/url "0.1.1"]  ; uri java.net
 
                  [com.taoensso/timbre "4.10.0"] ;; better logging
-                 [commons-net "3.6"]
+                 [commons-net "3.6"] ;; whois client
                  [dnsjava/dnsjava "3.0.0-next.1"] ;; dns client
                  [funcool/octet "1.1.2"]   ;; bytes buffer
-                 [me.raynes/conch "0.8.0"  :exclusions [org.flatland/useful]]
                  [me.raynes/fs "1.4.6"]            ;; file utility
-                 [org.clojure/core.async "0.7.559"]
                  [org.clojure/data.zip "0.1.3"]
-                 ;; [org.flatland/useful "0.11.6"]
                  [org.slf4j/slf4j-simple "1.7.30"]
                  [reaver/reaver "0.1.2"]              ;html parser
-                 [slingshot "0.12.2"]                 ; try+
 
                  ;; [lambdaisland/deep-diff "0.0-35"]
                  ;; [mvxcvi/puget "1.2.0"] ;; pretty printer
