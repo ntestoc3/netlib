@@ -114,10 +114,10 @@
          (cond
            (#{:name-server
               } k)
-           [k v]
+           [k (set v)]
 
            (= :domain-status k)
-           [k (map #(re-find #"^\w+" %) v)]
+           [k (set (map #(re-find #"^\w+" %) v))]
            ;; 日期格式不统一
            ;; (#{:updated-date
            ;;    :creation-date
@@ -133,7 +133,7 @@
            (= 1 (count v))
            [k (first v)]
 
-           :else [k v]))
+           :else [k (set v)]))
        result))
 
 (defn- format-result
@@ -152,7 +152,7 @@
   [result]
   (let [r1 (re-find #"(?s)(.*)>>>" result)
         r (if r1 (second r1) result)]
-    (->> (re-seq #"(\S[\S ]+?):\s+(\S[\S ]+)" r)
+    (->> (re-seq #"(\S[\S ]+?): (\S[\S ]+)" r)
          (map rest)
          format-result)))
 
@@ -169,17 +169,19 @@
                  :proxy 使用代理服务器"
   ([url] (whois url nil))
   ([url opts]
-   (let [r (->> (if (:whois-server opts)
+   (let [raw-r (->> (if (:whois-server opts)
                   opts
                   (assoc opts :whois-server (get-whois-server url)))
-                (query url)
-                parse-result)
+                (query url))
+         r (parse-result raw-r)
          new-whois-server (:registrar-whois-server r)]
      (if (and new-whois-server
               (not= new-whois-server (:whois-server opts)))
        (->> (assoc opts :whois-server new-whois-server)
             (whois url))
-       r))))
+       (if (:raw opts)
+         (assoc r :raw raw-r)
+         r)))))
 
 ;; ip whois
 (defn- get-rir-from-ip
@@ -196,7 +198,7 @@
 
 (defn parse-rip-lines
   [rs]
-  (some->> (map #(-> (re-find #"(\S[\S ]+?):\s+(\S[\S ]+)" %1)
+  (some->> (map #(-> (re-find #"(\S[\S ]+?): (\S[\S ]+)" %1)
                      rest)
                 rs)
            (filter first)
