@@ -1,10 +1,10 @@
-(defproject ntestoc3/netlib "0.2.0-SNAPSHOT"
+(defproject ntestoc3/netlib "0.3.0-SNAPSHOT"
   :description "net work utils"
   :url "https://github.com/ntestoc3/netlib"
   :license {:name "MIT"
             :url "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [ntestoc3/common "1.4.0-SNAPSHOT"]
+                 [ntestoc3/common "2.0.0-SNAPSHOT"]
 
                  [buddy/buddy-core "1.6.0"]                    ; crypt
                  [camel-snake-kebab/camel-snake-kebab "0.4.1"] ;; name convert

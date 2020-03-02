@@ -1,14 +1,11 @@
 (ns netlib.whois
   (:require [clojure.edn :as edn]
             [clojure.string :as str]
-            [common.wrap :refer [with-exception-default]]
             [netlib.util :refer [gen-proxy]]
             [camel-snake-kebab.core :refer :all]
             [taoensso.timbre :as log]
             [java-time]
-            [clojure.java.io :as io]
-            [me.raynes.fs :as fs]
-            [common.fs-ext :as fs-ext])
+            [clojure.java.io :as io])
   (:import [org.apache.commons.net.whois WhoisClient]
            (java.net Proxy InetSocketAddress)
            java.net.Proxy$Type
@@ -96,10 +93,11 @@
 
 (defn init-tlds!
   []
-  (some->> (with-exception-default (update-tlds)
-             (-> (fs-ext/file-open default-tld-file)
-                 slurp
-                 read-string))
+  (some->> (try (-> (io/resource default-tld-file)
+                    slurp
+                    read-string)
+                (catch Exception e
+                  (update-tlds)))
            (reset! tld-to-whois-server-map)))
 
 (defonce ___init___ (init-tlds!))

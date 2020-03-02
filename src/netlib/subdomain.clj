@@ -2,7 +2,7 @@
   (:require [taoensso.timbre :as log]
             [cemerick.url :refer [url url-encode]]
             [reaver :as html]
-            [common.http :as http]
+            [clj-http.client :as http]
             [netlib.search :as se]
             [clj-http.cookies :as cookies]))
 
@@ -22,7 +22,7 @@
                url
                (assoc :query {:q (str "%." domain)}))]
      (some-> (http/get (str u)
-                       (http/build-http-opt opts))
+                       opts)
              :body
              html/parse
              (html/extract [] "tr > td:eq(4)" html/text)
@@ -48,10 +48,9 @@
             url u]
        (if url
          (-> (http/get url
-                       (http/build-http-opt
-                        (merge opts
-                               {:accept :json
-                                :as :json})))
+                       (merge opts
+                              {:accept :json
+                               :as :json}))
              :body
              (as-> data
                  (recur (->> (virustotal-domain-get data)
@@ -88,19 +87,18 @@
    (let [u "https://dnsdumpster.com/"
          cs (cookies/cookie-store)
          ;; 先获取csrf token.
-         csrf (-> (http/get u (http/build-http-opt
-                               (merge opts
-                                      {:cookie-store cs
-                                       :cookie-policy :standard})))
+         csrf (-> (http/get u
+                            (merge opts
+                                   {:cookie-store cs
+                                    :cookie-policy :standard}))
                   (get-resp-cookie-value "csrftoken"))]
      (-> (http/post u
-                    (http/build-http-opt
-                     (merge opts
-                            {:cookie-store cs
-                             :cookie-policy :standard
-                             :headers {"Referer" u}
-                             :form-params {:csrfmiddlewaretoken csrf
-                                           :targetip domain}})))
+                    (merge opts
+                           {:cookie-store cs
+                            :cookie-policy :standard
+                            :headers {"Referer" u}
+                            :form-params {:csrfmiddlewaretoken csrf
+                                          :targetip domain}}))
          :body
          dnsdumpster-extract-domain))))
 
@@ -125,7 +123,7 @@
             path path]
        (if path
          (some-> (http/get (str base-url path)
-                           (http/build-http-opt opts))
+                           opts)
                  :body
                  html/parse
                  (as-> doc
@@ -143,8 +141,7 @@
   ([domain opts]
    (log/info :ip138 domain)
    (let [u (format "http://site.ip138.com/%s/domain.htm" domain)]
-     (some-> (http/get (str u)
-                       (http/build-http-opt opts))
+     (some-> (http/get u opts)
              :body
              html/parse
              (html/extract [] "div.panel > p > a" html/text)

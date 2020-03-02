@@ -4,8 +4,6 @@
             [octet.buffer :as buffer]
             [octet.spec :as spec]
             [octet.util :as util]
-            [common.fs-ext :as fs-ext]
-            [me.raynes.fs :as fs]
             [clojure.java.io :as io]))
 
 (defn- fix-endian

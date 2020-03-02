@@ -3,7 +3,6 @@
             [octet.core :as buf]
             [netlib.bytes :as bytes-util]
             [netlib.ip :as ip]
-            [common.fs-ext :as fs-ext]
             [me.raynes.fs :as fs]
             [clojure.java.io :as io])
   (:import [java.io File RandomAccessFile]
@@ -16,7 +15,8 @@
         file-c (.getChannel rf)]
     (.map file-c FileChannel$MapMode/READ_ONLY 0 (.size file-c))))
 
-(def qq-wry (make-readonly-file-map (fs-ext/file-open "qqwry.dat")))
+(def qq-wry (make-readonly-file-map (-> (io/resource "qqwry.dat")
+                                        io/file)))
 
 (defn- read-qq-wry
   [spec offset]
