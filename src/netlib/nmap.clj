@@ -20,8 +20,8 @@
        :or {port "0-65535"}}]
   (shell "nmap" "-v0" "-Pn" "--open"
          "-p" port
-      "-sT" "-sV" "-oX" out-fname
-      ip))
+         "-sV" "-oX" out-fname
+         ip))
 
 (defn read-nmap-xml
   [fname]

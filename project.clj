@@ -1,4 +1,4 @@
-(defproject ntestoc3/netlib "0.1.0-SNAPSHOT"
+(defproject ntestoc3/netlib "0.2.0-SNAPSHOT"
   :description "net work utils"
   :url "https://github.com/ntestoc3/netlib"
   :license {:name "MIT"
@@ -22,11 +22,7 @@
                  [org.slf4j/slf4j-simple "1.7.30"]
                  [reaver/reaver "0.1.2"]              ;html parser
 
-                 ;; [lambdaisland/deep-diff "0.0-35"]
-                 ;; [mvxcvi/puget "1.2.0"] ;; pretty printer
-                 ;; [org.apache.commons/commons-text "1.8"] ;; text diff
-                 ;; [org.bitbucket.cowwoc/diff-match-patch "1.2"] ;; google diff patch
-                 ]
+                ]
   :profiles {:dev {:dependencies [[midje "1.9.9" :exclusions [org.clojure/clojure]]
                                   ]
                    :plugins [[lein-midje "3.2.1"]]}}

@@ -27,6 +27,7 @@
         :or {whois-server  WhoisClient/DEFAULT_HOST
              conn-timeout 5000
              default-timeout 8000}}]
+  (log/info :debug :query url "with whois-server:" whois-server)
   (let [wis (doto (WhoisClient.)
               (.setConnectTimeout conn-timeout)
               (.setDefaultTimeout default-timeout))]
@@ -142,7 +143,9 @@
   [r]
   (->> r
        (group-by first)
-       (map (fn [[k v]] [(->kebab-case-keyword k)
+       (map (fn [[k v]] [(-> (->kebab-case-string k)
+                             (str/replace #"/-" "|")
+                             keyword)
                          (map second v)]))
        (trans-result-field-type)
        (into {})))
@@ -155,21 +158,24 @@
          (map rest)
          format-result)))
 
+(defn- get-whois-server
+  [url]
+  (-> (get-tld-from-url url)
+      (get-whois-server-for-tld)))
+
 (defn whois
   "`url` 要查询whois的域名
   `opts` 可选参数，:whois-server 指定从whois server查询
                  :conn-timeout 连接超时时间
                  :default-timeout 默认超时时间
                  :proxy 使用代理服务器"
-  ([url] (let [tld (get-tld-from-url url)
-               whois-server (get-whois-server-for-tld tld)]
-           (if whois-server
-             (whois url {:whois-server whois-server})
-             (log/error :whois "could not find whois server for TLD " tld))))
+  ([url] (whois url nil))
   ([url opts]
-   (log/info :whois url " with server:" (:whois-server opts))
-   (let [r (-> (query url opts)
-               parse-result)
+   (let [r (->> (if (:whois-server opts)
+                  opts
+                  (assoc opts :whois-server (get-whois-server url)))
+                (query url)
+                parse-result)
          new-whois-server (:registrar-whois-server r)]
      (if (and new-whois-server
               (not= new-whois-server (:whois-server opts)))
