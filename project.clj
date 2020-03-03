@@ -3,14 +3,11 @@
   :url "https://github.com/ntestoc3/netlib"
   :license {:name "MIT"
             :url "https://opensource.org/licenses/MIT"}
-  :deploy-repositories [["releases" {:url "https://repo.clojars.org"
-                                     :username :env/clojars_user
-                                     :password :env/clojars_pass
-                                     }]
-                        ["snapshots" {:url "https://repo.clojars.org"
-                                      :username :env/clojars_user
-                                      :password :env/clojars_pass
-                                      }]]
+  :deploy-repositories [["clojars" {:url "https://clojars.org/repo"
+                                    :username :env/clojars_user
+                                    :password :env/clojars_pass
+                                    :sign-releases false
+                                    }]]
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [ntestoc3/common "2.0.0-SNAPSHOT"]
