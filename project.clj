@@ -1,13 +1,16 @@
-(defproject ntestoc3/netlib "0.3.0-SNAPSHOT"
+(defproject ntestoc3/netlib "0.3.0"
   :description "net work utils"
   :url "https://github.com/ntestoc3/netlib"
   :license {:name "MIT"
             :url "https://opensource.org/licenses/MIT"}
-  :deploy-repositories [["clojars" {:url "https://clojars.org/repo"
-                                    :username :env/clojars_user
-                                    :password :env/clojars_pass
-                                    :sign-releases false
-                                    }]]
+  :deploy-repositories [["snapshots" {:url "https://clojars.org/repo"
+                                      :username :env/clojars_user
+                                      :password :env/clojars_pass
+                                      :sign-releases false}]
+                        ["releases"  {:url "https://clojars.org/repo"
+                                      :username :env/clojars_user
+                                      :password :env/clojars_pass
+                                      :sign-releases false}]]
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [ntestoc3/common "2.0.0-SNAPSHOT"]
