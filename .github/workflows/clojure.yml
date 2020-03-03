@@ -1,0 +1,20 @@
+name: Clojure CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: lein deps
+    - name: Run tests
+      run: lein test
+    - name: publish
+      run: lein deploy clojars
+      env:
+        CLOJAR_USER: ${{ secrets.CLOJAR_USER }}
+        CLOJAR_PASS: ${{ secrets.CLOJAR_PASS }}
