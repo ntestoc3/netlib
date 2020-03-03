@@ -13,6 +13,13 @@
 
 (def iana-whois-server "whois.iana.org")
 
+(defn- str-filter-line
+  "过滤字符串s中匹配re的行，或空行"
+  [re s]
+  (->> (line-seq (BufferedReader. (StringReader. s)))
+       (filter #(not (or (empty? %1)
+                         (re-find re %1))))))
+
 (defn- query
   "Wraps WhoisClient.query.
   whois-server is the whois server you want to query
@@ -116,6 +123,12 @@
               } k)
            [k (set v)]
 
+           (#{:address
+              :remarks
+              :descr
+              :comment} k)
+           [k (str/join "\n" v)]
+
            (= :domain-status k)
            [k (set (map #(re-find #"^\w+" %) v))]
            ;; 日期格式不统一
@@ -148,13 +161,20 @@
        (trans-result-field-type)
        (into {})))
 
+(defn parse-result-lines
+  "解析结果行"
+  [rs]
+  (some->> (map #(-> (re-find #"(\S[\S ]+?): \s*(\S[\S ]+)" %1)
+                     rest) rs)
+           (filter first)
+           format-result))
+
 (defn- parse-result
   [result]
   (let [r1 (re-find #"(?s)(.*)>>>" result)
-        r (if r1 (second r1) result)]
-    (->> (re-seq #"(\S[\S ]+?): (\S[\S ]+)" r)
-         (map rest)
-         format-result)))
+        r (->> (if r1 (second r1) result)
+               (str-filter-line #"URL of the ICANN"))]
+    (parse-result-lines r)))
 
 (defn- get-whois-server
   [url]
@@ -196,36 +216,22 @@
   {:arglists '([rir ip opts])}
   (fn [rir & _] rir))
 
-(defn parse-rip-lines
-  [rs]
-  (some->> (map #(-> (re-find #"(\S[\S ]+?): (\S[\S ]+)" %1)
-                     rest)
-                rs)
-           (filter first)
-           format-result))
-
-(defn- str-filter-line
-  "过滤字符串s中匹配re的行，或空行"
-  [re s]
-  (->> (line-seq (BufferedReader. (StringReader. s)))
-       (filter #(not (or (empty? %1)
-                         (re-find re %1))))))
-
-
 (defmethod rir-query arin-rir
   [rir ip opts]
   (log/debug "rir server: " rir " query ip: " ip)
-  (let [r (query (str "n " ip) (assoc opts :whois-server rir))]
-    (-> (str-filter-line #"^#" r)
-        parse-rip-lines)))
+  (let [r (query (str "n + " ip) (assoc opts :whois-server rir))]
+    (cond-> (-> (str-filter-line #"^#" r)
+                parse-result-lines)
+      (:raw opts) (assoc :raw r))))
 
 ;; 其它几个地区注释都是%开头的
 (defmethod rir-query :default
   [rir ip opts]
   (log/debug "rir: " rir " query ip: " ip)
   (let [r (query ip (assoc opts :whois-server rir))]
-    (-> (str-filter-line #"^%" r)
-        parse-rip-lines)))
+    (cond-> (-> (str-filter-line #"^%" r)
+                parse-result-lines)
+      (:raw opts) (assoc :raw r))))
 
 (defn whois-ip
   "`ip` 要查询whois的ip地址字符串

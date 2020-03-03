@@ -31,4 +31,4 @@
   :profiles {:dev {:dependencies [[midje "1.9.9" :exclusions [org.clojure/clojure]]
                                   ]
                    :plugins [[lein-midje "3.2.1"]]}}
-  :repl-options {:init-ns netlib.core})
+  )
