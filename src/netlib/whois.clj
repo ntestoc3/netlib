@@ -38,10 +38,7 @@
     (when proxy
       (.setProxy wis (gen-proxy proxy)))
     (.connect wis whois-server)
-    (let [ret (try (. wis query url)
-                   (catch java.io.IOException ex
-                     (log/error :whois-query url)
-                     "Failed"))]
+    (let [ret (. wis query url)]
       (.disconnect wis)
       ret)))
 

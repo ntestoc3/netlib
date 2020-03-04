@@ -203,13 +203,9 @@
    (rev-lookup \"8.8.8.8\")
   "
   [ip-address]
-  (try
-    (->> (Address/getByAddress ip-address)
-         .getAddress
-         (.getHostByAddr dns-service))
-    ;; **为什么catch还会抛出异常?**, 是dnsjava实现问题，System.err.println输出异常信息
-    (catch java.net.UnknownHostException e
-      {:error "unknown host"})))
+  (->> (Address/getByAddress ip-address)
+       .getAddress
+       (.getHostByAddr dns-service)))
 
 ;; (lookup "bing.com" :a :resolve "8.8.8.8")
 ;; (lookup "silisili.cn" :soa :extend-resolves ["8.8.8.8"
