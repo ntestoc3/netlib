@@ -4,7 +4,8 @@
             [reaver :as html]
             [clj-http.client :as http]
             [netlib.search :as se]
-            [clj-http.cookies :as cookies]))
+            [clj-http.cookies :as cookies]
+            [clojure.string :as str]))
 
 (defn ->set
   "转换序列到set,如果datas是字符串，则将整个串作为set元素"
@@ -20,14 +21,18 @@
    (log/info :crt-sh domain)
    (let [u (-> "https://crt.sh/"
                url
-               (assoc :query {:q (str "%." domain)}))]
-     (some-> (http/get (str u)
-                       opts)
-             :body
-             html/parse
-             (html/extract [] "tr > td:eq(4)" html/text)
-             ->set))))
+               (assoc :query {:dNSName domain}))]
+     (->> (some-> (http/get (str u)
+                            opts)
+                  :body
+                  html/parse
+                  (html/extract [] "tr > td:eq(4)" html/text)
+                  ->set)
+          (mapcat #(-> (str/replace %1 #"\*\." "")
+                       (str/split #"\s")))
+          set))))
 
+(str/split "im.baidu.com" #"\s")
 ;;; -------------------- virustotal --------------
 
 (defn virustotal-next

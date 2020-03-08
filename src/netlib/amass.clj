@@ -8,7 +8,7 @@
             [taoensso.timbre :as log]))
 
 (defn amass
-  ([domain json-out-fname] (amass domain json-out-fname))
+  ([domain json-out-fname] (amass domain json-out-fname nil))
   ([domain json-out-fname extra-opts]
    (->> (concat ["enum" "-v" "-src" "-json" json-out-fname]
                 extra-opts
