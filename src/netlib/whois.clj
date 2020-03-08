@@ -31,7 +31,7 @@
         :or {whois-server  WhoisClient/DEFAULT_HOST
              conn-timeout 5000
              default-timeout 8000}}]
-  (log/info :debug :query url "with whois-server:" whois-server)
+  (log/debug :query url "with whois-server:" whois-server)
   (let [wis (doto (WhoisClient.)
               (.setConnectTimeout conn-timeout)
               (.setDefaultTimeout default-timeout))]

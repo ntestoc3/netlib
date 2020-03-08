@@ -7,11 +7,13 @@
             [netlib.util :refer [shell]]
             [taoensso.timbre :as log]))
 
-
-
 (defn amass
-  [domain json-out-fname]
-  (shell "amass" "enum" "-v" "-src" "-json" json-out-fname "-d" domain))
+  ([domain json-out-fname] (amass domain json-out-fname))
+  ([domain json-out-fname extra-opts]
+   (->> (concat ["enum" "-v" "-src" "-json" json-out-fname]
+                extra-opts
+                ["-d" domain])
+        (apply shell "amass"))))
 
 (defn parse-amass-out
   "解析amass输出"
@@ -37,8 +39,8 @@
   "如果不指定输出json的文件名，则默认保存为当前目录下amsss_`domain`.json"
   ([domain] (run-amass domain
                        {:output-json-path (str "amass_" domain ".json")}))
-  ([domain {:keys [output-json-path]}]
-   (let [amass-r (amass domain output-json-path)]
+  ([domain {:keys [output-json-path extra-opts]}]
+   (let [amass-r (amass domain output-json-path extra-opts)]
      (if (zero? (:exit amass-r))
        (do
          (log/warn :run-amass (:err amass-r))

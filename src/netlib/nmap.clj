@@ -9,18 +9,22 @@
             [clojure.string :as str]))
 
 (defn masscan
-  [ip {:keys [rate port out-fname]
+  [ip {:keys [rate port out-fname extra-opts]
        :or {rate 100000
             port "0-65535"}}]
-  (shell "masscan" "-p" port "-oX" out-fname "--rate" (str rate) ip))
+  (->> (concat ["-p" port "-oX" out-fname "--rate" (str rate)]
+               extra-opts
+               [ip])
+       (apply shell "masscan")))
 
 (defn nmap
-  [ip {:keys [port out-fname]
+  [ip {:keys [port out-fname extra-opts]
        :or {port "0-65535"}}]
-  (shell "nmap" "-v0" "-Pn" "--open"
-         "-p" port
-         "-sV" "-oX" out-fname
-         ip))
+  (->> (concat ["-v0" "-Pn" "--open"
+                "-p" port]
+               extra-opts
+               ["-sV" "-oX" out-fname ip])
+       (apply shell "nmap")))
 
 (defn read-nmap-xml
   [fname]
@@ -114,9 +118,9 @@
   或者多个ip: 192.168.0.0,192.168.0.1
   或者范围: 192.168.0.0-192.168.0.20,192.168.0.0/24 "
   ([ip] (services-scan ip nil))
-  ([ip opts]
-   (some->> (run-masscan ip opts)
+  ([ip {:keys [masscan-opts nmap-opts]}]
+   (some->> (run-masscan ip masscan-opts)
             (mapcat  #(run-nmap (:ip %1)
                                 (->> (get-ports %1)
                                      (str/join ",")
-                                     (assoc opts :port)))))))
+                                     (assoc nmap-opts :port)))))))
