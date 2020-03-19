@@ -1,6 +1,6 @@
 # netlib
 
-A Clojure library designed to domain OSINT 
+A Clojure library designed for domain OSINT 
 
 ## Usage
 

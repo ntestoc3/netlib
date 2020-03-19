@@ -21,6 +21,7 @@
                  "-out" out-path
                  "-http-timeout" (str http-timeout)
                  "-threads" (str threads)
+                 "-ports" ports
                  "-scan-timeout" (str scan-timeout)
                  "-screenshot-timeout" (str screenshot-timeout)]
                 extra-opts
