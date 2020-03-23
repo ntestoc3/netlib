@@ -20,7 +20,7 @@
 
                  [com.taoensso/timbre "4.10.0"]   ;; better logging
                  [commons-net "3.6"]              ;; whois client
-                 [dnsjava/dnsjava "3.0.0-next.1"] ;; dns client
+                 [dnsjava/dnsjava "3.0.2"] ;; dns client
                  [funcool/octet "1.1.2"]          ;; bytes buffer
                  [me.raynes/fs "1.4.6"]           ;; file utility
                  [org.clojure/data.zip "0.1.3"]
