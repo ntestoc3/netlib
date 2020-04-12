@@ -9,7 +9,7 @@
                                       :sign-releases false}]]
 
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [ntestoc3/common "2.0.0-SNAPSHOT"]
+                 [ntestoc3/common "2.1.4-SNAPSHOT"]
 
                  [buddy/buddy-core "1.6.0"]                    ; crypt
                  [camel-snake-kebab/camel-snake-kebab "0.4.1"] ;; name convert

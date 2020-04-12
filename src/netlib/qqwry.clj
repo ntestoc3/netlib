@@ -2,6 +2,7 @@
   (:require [taoensso.timbre :as log]
             [octet.core :as buf]
             [netlib.bytes :as bytes-util]
+            [common.fs-ext :as fs-ext]
             [netlib.ip :as ip]
             [me.raynes.fs :as fs]
             [clojure.java.io :as io])
@@ -15,8 +16,9 @@
         file-c (.getChannel rf)]
     (.map file-c FileChannel$MapMode/READ_ONLY 0 (.size file-c))))
 
-(def qq-wry (make-readonly-file-map (-> (io/resource "qqwry.dat")
-                                        io/file)))
+(def data-file "qqwry.dat")
+(fs-ext/extract-resource! data-file)
+(def qq-wry (make-readonly-file-map (io/file data-file)))
 
 (defn- read-qq-wry
   [spec offset]
