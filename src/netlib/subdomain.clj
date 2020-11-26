@@ -151,7 +151,8 @@
              html/parse
              (html/extract [] "div.panel > p > a" html/text)
              ;; 当只有一个结果时，会返回一个字符串，set又把字符串作为序列...
-             ->set))))
+             ->set
+             (disj "更多子域名")))))
 
 
 ;; ---------------------- total
