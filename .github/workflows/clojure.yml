@@ -16,5 +16,6 @@ jobs:
     - name: publish
       run: lein deploy clojars
       env:
+        LEIN_SNAPSHOTS_IN_RELEASE: true
         CLOJARS_USER: ${{ secrets.CLOJAR_USER }}
         CLOJARS_PASS: ${{ secrets.CLOJAR_PASS }}
