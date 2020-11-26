@@ -1,4 +1,4 @@
-(defproject ntestoc3/netlib "0.3.5"
+(defproject ntestoc3/netlib "0.3.6"
   :description "net work utils"
   :url "https://github.com/ntestoc3/netlib"
   :license {:name "MIT"
