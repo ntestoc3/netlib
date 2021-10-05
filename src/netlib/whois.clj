@@ -20,7 +20,7 @@
        (filter #(not (or (empty? %1)
                          (re-find re %1))))))
 
-(defn- query
+(defn query
   "Wraps WhoisClient.query.
   whois-server is the whois server you want to query
   url is the domain name you want to look up
@@ -187,9 +187,9 @@
   ([url] (whois url nil))
   ([url opts]
    (let [raw-r (->> (if (:whois-server opts)
-                  opts
-                  (assoc opts :whois-server (get-whois-server url)))
-                (query url))
+                      opts
+                      (assoc opts :whois-server (get-whois-server url)))
+                    (query url))
          r (parse-result raw-r)
          new-whois-server (:registrar-whois-server r)]
      (if (and new-whois-server

@@ -2,14 +2,15 @@
   (:import
    (java.net InetAddress Inet4Address Inet6Address)
    (org.xbill.DNS Address Type Lookup
+                  ReverseMap
                   Record ARecord AAAARecord
                   CNAMERecord DSRecord MXRecord
                   NSRecord PTRRecord SOARecord
                   TXTRecord TXTBase ExtendedResolver
-                  SimpleResolver)
-   (org.xbill.DNS.spi DNSJavaNameServiceDescriptor DNSJavaNameService))
+                  SimpleResolver))
   (:require [taoensso.timbre :as log]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.string :as str]))
 
 (def keyword-type
   [[:a Type/A]
@@ -196,21 +197,24 @@
          (mapv convert r)
          {:error (.getErrorString l)})))))
 
-(def dns-service (.createNameService (DNSJavaNameServiceDescriptor.)))
 (defn rev-lookup
   "Lookup hostname by ip address
 
    (rev-lookup \"8.8.8.8\")
   "
   [ip-address]
-  (->> (Address/getByAddress ip-address)
-       .getAddress
-       (.getHostByAddr dns-service)))
+  (some-> (lookup (ReverseMap/fromAddress ip-address)
+                  {:type :ptr})
+          first
+          :target
+          (str/replace #"\.$" "")))
 
-;; (lookup "bing.com" :a :resolve "8.8.8.8")
-;; (lookup "silisili.cn" :soa :extend-resolves ["8.8.8.8"
-;;                                                      "4.2.2.6"
-;;                                                      "4.2.2.1"
-;;                                                      "4.2.2.3"])
-;; (rev-lookup "4.2.2.2")
-;;(lookup "baidu.cn" :ns :resolve "8.8.8.8")
+(comment
+
+  (lookup "bing.com" {:type :ns})
+
+  (lookup "www.bing.com")
+
+  (rev-lookup "8.8.8.8")
+
+  )
