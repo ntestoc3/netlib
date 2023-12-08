@@ -1,0 +1,48 @@
+(ns netlib.whois-test
+  (:require [netlib.whois :refer :all]
+            [midje.sweet :refer :all]
+            [clojure.string :as str]))
+
+
+(fact "parse ip iana whois result"
+      (let [r (parse-result "% IANA WHOIS server\n% for more information on IANA, visit http://www.iana.org\n% This query returned 1 object\n\nrefer:        whois.apnic.net\n\ninetnum:      1.0.0.0 - 1.255.255.255\norganisation: APNIC\nstatus:       ALLOCATED\n\nwhois:        whois.apnic.net\n\nchanged:      2010-01\nsource:       IANA\n\n")]
+        (:refer r) => "whois.apnic.net",
+        (:status (first (:organisations r))) => "ALLOCATED"
+        (:source r) => "IANA"
+        ))
+
+(fact "parse ip whois with persons"
+      (let [r (parse-result "% [whois.apnic.net]\n% Whois data copyright terms    http://www.apnic.net/db/dbcopyright.html\n\n% Information related to '222.222.0.0 - 222.223.255.255'\n\n% Abuse contact for '222.222.0.0 - 222.223.255.255' is 'anti-spam@chinatelecom.cn'\n\ninetnum:        222.222.0.0 - 222.223.255.255\nnetname:        CHINANET-HE\ndescr:          CHINANET hebei province network\ndescr:          China Telecom\ndescr:          No.31,jingrong street\ndescr:          Beijing 100032\ncountry:        CN\nadmin-c:        BR3-AP\ntech-c:         CH93-AP\nabuse-c:        AC1573-AP\nstatus:         ALLOCATED PORTABLE\nremarks:        --------------------------------------------------------\nremarks:        To report network abuse, please contact mnt-irt\nremarks:        For troubleshooting, please contact tech-c and admin-c\nremarks:        Report invalid contact via www.apnic.net/invalidcontact\nremarks:        --------------------------------------------------------\nmnt-by:         APNIC-HM\nmnt-lower:      MAINT-CHINANET-HE\nmnt-routes:     MAINT-CHINANET-HE\nmnt-irt:        IRT-CHINANET-CN\nlast-modified:  2021-06-15T08:05:52Z\nsource:         APNIC\n\nirt:            IRT-CHINANET-CN\naddress:        No.31 ,jingrong street,beijing\naddress:        100032\ne-mail:         anti-spam@chinatelecom.cn\nabuse-mailbox:  anti-spam@chinatelecom.cn\nadmin-c:        CH93-AP\ntech-c:         CH93-AP\nauth:           # Filtered\nremarks:        anti-spam@chinatelecom.cn was validated on 2023-10-08\nmnt-by:         MAINT-CHINANET\nlast-modified:  2023-10-08T08:55:58Z\nsource:         APNIC\n\nrole:           ABUSE CHINANETCN\naddress:        No.31 ,jingrong street,beijing\naddress:        100032\ncountry:        ZZ\nphone:          +000000000\ne-mail:         anti-spam@chinatelecom.cn\nadmin-c:        CH93-AP\ntech-c:         CH93-AP\nnic-hdl:        AC1573-AP\nremarks:        Generated from irt object IRT-CHINANET-CN\nremarks:        anti-spam@chinatelecom.cn was validated on 2023-10-08\nabuse-mailbox:  anti-spam@chinatelecom.cn\nmnt-by:         APNIC-ABUSE\nlast-modified:  2023-10-08T08:56:49Z\nsource:         APNIC\n\nperson:         Bin Ren\nnic-hdl:        BR3-AP\ne-mail:         g-noc.he@chinatelecom.cn\naddress:        NO.69 KunLun avenue, Shijiazhuang 050000 China\nphone:          +86-311-85211771\nfax-no:         +86-311-85202145\ncountry:        CN\nmnt-by:         MAINT-CHINANET-HE\nlast-modified:  2019-03-20T02:47:26Z\nsource:         APNIC\n\nperson:         Chinanet Hostmaster\nnic-hdl:        CH93-AP\ne-mail:         anti-spam@chinatelecom.cn\naddress:        No.31 ,jingrong street,beijing\naddress:        100032\nphone:          +86-10-58501724\nfax-no:         +86-10-58501724\ncountry:        CN\nmnt-by:         MAINT-CHINANET\nlast-modified:  2022-02-28T06:53:44Z\nsource:         APNIC\n\n% This query was served by the APNIC Whois Service version 1.88.25 (WHOIS-AU3)\n\n\n")]
+        (count (:irts r)) => 1
+        (count (:roles r)) => 1
+        (count (:persons r)) => 2
+        (:mnt-irt r) => "IRT-CHINANET-CN"
+        (:descr r) => "CHINANET hebei province network\nChina Telecom\nNo.31,jingrong street\nBeijing 100032"
+        (:status r) => "ALLOCATED PORTABLE"
+        (:mnt-by (second (:persons r))) => "MAINT-CHINANET-HE"
+        (:phone (second (:persons r))) => "+86-311-85211771"
+        )
+      )
+
+
+(facts "ip whois block groups"
+       (let [r (parse-result "\n#\n# ARIN WHOIS data and services are subject to the Terms of Use\n# available at: https://www.arin.net/resources/registry/whois/tou/\n#\n# If you see inaccuracies in the results, please report at\n# https://www.arin.net/resources/registry/whois/inaccuracy_reporting/\n#\n# Copyright 1997-2023, American Registry for Internet Numbers, Ltd.\n#\n\n\nNetRange:       199.5.26.0 - 199.5.26.255\nCIDR:           199.5.26.0/24\nNetName:        ARIN-PFS-SEA\nNetHandle:      NET-199-5-26-0-1\nParent:         NET199 (NET-199-0-0-0-0)\nNetType:        Direct Allocation\nOriginAS:       AS394018\nOrganization:   ARIN Operations (ARINOPS)\nRegDate:        2015-05-22\nUpdated:        2021-12-14\nRef:            https://rdap.arin.net/registry/ip/199.5.26.0\n\n\nOrgName:        ARIN Operations\nOrgId:          ARINOPS\nAddress:        PO Box 232290\nCity:           Centreville\nStateProv:      VA\nPostalCode:     20120\nCountry:        US\nRegDate:        2012-09-07\nUpdated:        2023-04-25\nRef:            https://rdap.arin.net/registry/entity/ARINOPS\n\n\nOrgTechHandle: JEFFE114-ARIN\nOrgTechName:   Jeffers, David \nOrgTechPhone:  +1-703-227-0660 \nOrgTechEmail:  david@arin.net\nOrgTechRef:    https://rdap.arin.net/registry/entity/JEFFE114-ARIN\n\nOrgAbuseHandle: AOA4-ARIN\nOrgAbuseName:   ARIN Operations Abuse\nOrgAbusePhone:  +1-703-227-0660 \nOrgAbuseEmail:  abuse@arin.net\nOrgAbuseRef:    https://rdap.arin.net/registry/entity/AOA4-ARIN\n\nOrgNOCHandle: MJO282-ARIN\nOrgNOCName:   O'Neill, Michael J\nOrgNOCPhone:  +1-703-227-0660 \nOrgNOCEmail:  mjo@arin.net\nOrgNOCRef:    https://rdap.arin.net/registry/entity/MJO282-ARIN\n\nOrgTechHandle: TOSCA5-ARIN\nOrgTechName:   Toscano, Pete \nOrgTechPhone:  +1-703-942-9542 \nOrgTechEmail:  pete@arin.net\nOrgTechRef:    https://rdap.arin.net/registry/entity/TOSCA5-ARIN\n\nOrgTechHandle: MJO282-ARIN\nOrgTechName:   O'Neill, Michael J\nOrgTechPhone:  +1-703-227-0660 \nOrgTechEmail:  mjo@arin.net\nOrgTechRef:    https://rdap.arin.net/registry/entity/MJO282-ARIN\n\nOrgTechHandle: FORST20-ARIN\nOrgTechName:   Forster, Reggie \nOrgTechPhone:  +1-703-227-0660 \nOrgTechEmail:  rforster@arin.net\nOrgTechRef:    https://rdap.arin.net/registry/entity/FORST20-ARIN\n\nOrgNOCHandle: JEFFE114-ARIN\nOrgNOCName:   Jeffers, David \nOrgNOCPhone:  +1-703-227-0660 \nOrgNOCEmail:  david@arin.net\nOrgNOCRef:    https://rdap.arin.net/registry/entity/JEFFE114-ARIN\n\nOrgDNSHandle: JEFFE114-ARIN\nOrgDNSName:   Jeffers, David \nOrgDNSPhone:  +1-703-227-0660 \nOrgDNSEmail:  david@arin.net\nOrgDNSRef:    https://rdap.arin.net/registry/entity/JEFFE114-ARIN\n\n\n#\n# ARIN WHOIS data and services are subject to the Terms of Use\n# available at: https://www.arin.net/resources/registry/whois/tou/\n#\n# If you see inaccuracies in the results, please report at\n# https://www.arin.net/resources/registry/whois/inaccuracy_reporting/\n#\n# Copyright 1997-2023, American Registry for Internet Numbers, Ltd.\n#\n\n"
+)]
+         (count (:org-abuse r)) => 1
+         (count (:org-noc r)) => 2
+         (count (:org-tech r)) => 4
+         (count (:org-dns r)) => 1
+         (:name (first (:org-tech r))) => "Forster, Reggie "
+
+         )
+       )
+
+(facts "whois with filter comment"
+       (let [r (parse-result "% This is the RIPE Database query service.\n% The objects are in RPSL format.\n%\n% The RIPE Database is subject to Terms and Conditions.\n% See https://apps.db.ripe.net/docs/HTML-Terms-And-Conditions\n\n% Note: this output has been filtered.\n%       To receive output for a database update, use the \"-B\" flag.\n\n% Information related to '212.212.0.0 - 212.212.0.255'\n\n% Abuse contact for '212.212.0.0 - 212.212.0.255' is 'abuse@gtt.net'\n\ninetnum:        212.212.0.0 - 212.212.0.255\nnetname:        EASYNET-ATM-1\ndescr:          Easynet UK Ltd\ncountry:        GB\nadmin-c:        EH92-RIPE\ntech-c:         EH92-RIPE\nstatus:         ASSIGNED PA\nmnt-by:         EASYNET-UK-MNT\ncreated:        1970-01-01T00:00:00Z\nlast-modified:  2011-10-14T15:59:01Z\nsource:         RIPE # Filtered\n\nrole:           Easynet Hostmaster\naddress:        Easynet Ltd\naddress:        Chancellor House\naddress:        5 Thomas More Square\naddress:        London\naddress:        E1W 1YW\naddress:        England\naddress:        GB\nphone:          +44 20 7032 5200\nfax-no:         +44 20 7032 5335\nadmin-c:        PPD-RIPE\nadmin-c:        CVK6-RIPE\ntech-c:         PPD-RIPE\ntech-c:         CVK6-RIPE\nnic-hdl:        EH92-RIPE\nabuse-mailbox:  abuse@uk.easynet.net\nmnt-by:         EASYNET-UK-MNT\ncreated:        2002-01-23T23:24:19Z\nlast-modified:  2012-11-29T15:02:34Z\nsource:         RIPE # Filtered\n\n% Information related to '212.212.0.0/16AS3257'\n\nroute:          212.212.0.0/16\ndescr:          GTT\norigin:         AS3257\nmnt-by:         AS3257-ROUTE-MNT\ncreated:        2021-11-24T15:12:45Z\nlast-modified:  2021-11-24T15:12:45Z\nsource:         RIPE\n\n% Information related to '212.212.0.0/16AS4589'\n\nroute:          212.212.0.0/16\ndescr:          Easynet UK\norigin:         AS4589\nmnt-by:         EASYNET-ROUTE-MNT\ncreated:        1970-01-01T00:00:00Z\nlast-modified:  2013-07-09T12:08:30Z\nsource:         RIPE\n\n% This query was served by the RIPE Database Query Service version 1.109 (ABERDEEN)\n\n\n")]
+         (count (:roles r)) => 1
+         (count (:routes r)) => 2
+         (:source (first (:routes r))) => "RIPE"
+         (:source (second (:routes r))) => "RIPE"
+         (:source (first (:roles r))) => "RIPE"
+         )
+       )

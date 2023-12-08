@@ -18,6 +18,8 @@
                  [clojure.java-time "0.3.3"] ; datetime
                  [com.cemerick/url "0.1.1"]  ; uri java.net
 
+                 [org.flatland/ordered "1.5.9"]
+
                  [com.taoensso/timbre "5.1.2"]   ;; better logging
                  [commons-net "3.8.0"]              ;; whois client
                  [dnsjava/dnsjava "3.4.2"] ;; dns client

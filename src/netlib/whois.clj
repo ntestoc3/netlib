@@ -4,6 +4,7 @@
             [netlib.util :refer [gen-proxy]]
             [camel-snake-kebab.core :refer :all]
             [taoensso.timbre :as log]
+            [flatland.ordered.map :refer [ordered-map]]
             [java-time]
             [clojure.java.io :as io])
   (:import [org.apache.commons.net.whois WhoisClient]
@@ -19,6 +20,126 @@
   (->> (line-seq (BufferedReader. (StringReader. s)))
        (filter #(not (or (empty? %1)
                          (re-find re %1))))))
+
+(defn- get-tld-from-url
+  "Extract TLD from a URL"
+  [url]
+  (some-> (re-find #"\.\w+$" url)
+          str/lower-case))
+
+(defn- trans-result-field-type
+  [result]
+  (map (fn [[k v]]
+         (cond
+           (#{:name-server} k)
+           [k (set v)]
+
+           (#{:address
+              :remarks
+              :descr
+              :comment} k)
+           [k (str/join "\n" v)]
+
+           (= :domain-status k)
+           [k (set (map #(re-find #"^\w+" %) v))]
+           ;; 日期格式不统一
+           ;; (#{:updated-date
+           ;;    :creation-date
+           ;;    :registry-expiry-date
+           ;;    } k)
+           ;; [k (java-time/zoned-date-time (first v))]
+
+           ;; (#{:expiration-time
+           ;;    :registration-time
+           ;;    } k)
+           ;; [k (java-time/local-date-time "y-M-d H:m:s" (first v))]
+
+           (= 1 (count v))
+           [k (first v)]
+
+           :else [k (set v)]))
+       result))
+
+(defn- format-result
+  "格式化查询结果到map"
+  [r]
+  (->> r
+       (group-by first)
+       (map (fn [[k v]] [(-> (->kebab-case-string k)
+                             (str/replace #"/-" "|")
+                             keyword)
+                         (map second v)]))
+       (trans-result-field-type)
+       (into (ordered-map))))
+
+(defn parse-result-lines
+  "解析结果行"
+  [rs]
+  (some->> (map #(-> (re-find #"(\S[\S ]+?): \s*(\S[\S ]+)" %1)
+                     rest) rs)
+           (filter first)
+           format-result))
+
+(defn- map-key-replace
+  [m match replacement]
+  (->> m
+       (map (fn [[k v]]
+              [(-> (name k)
+                   (str/replace match replacement )
+                   keyword)
+               v]))
+       (into (ordered-map))))
+
+(defn group-result
+  [data-blocks]
+  (reduce (fn [res block]
+            (let [org-handler (some->> (ffirst block)
+                                       name
+                                       (re-find #"(org-.*)-handle")
+                                       second)]
+              (cond
+                (:contact block) (assoc res
+                                        (->kebab-case-keyword (:contact block)) block)
+
+                (:role block) (update res :roles conj block)
+
+                (:person block) (update res :persons conj block)
+
+                (:organisation block) (update res :organisations conj block)
+
+                (:irt block) (update res :irts conj block)
+
+                (:route block) (update res :routes conj block)
+
+                (:nserver block) (assoc res :ns block)
+
+                ;; org handler
+                org-handler (->> (map-key-replace block (str org-handler "-") "")
+                                 (update res (keyword org-handler) conj))
+
+                :default
+                (merge res block))))
+          {} data-blocks))
+
+(defn- remove-comment
+  [line]
+  (str/replace line #"\s+#.*$" ""))
+
+(defn- split-blocks
+  [raw]
+  (str/split raw #"\n\n+"))
+
+(defn parse-result
+  [result]
+  (let [data (re-find #"(?s)(.*)>>>" result)
+        data (->> (if data (second data) result))]
+    (->> (str/replace data #"(?m)^(%|#).*$" "")
+         split-blocks
+         (map #(->> (str-filter-line #"URL of the ICANN" %)
+                    (map remove-comment)
+                    parse-result-lines))
+         group-result)))
+
 
 (defn query
   "Wraps WhoisClient.query.
@@ -106,73 +227,6 @@
 
 (defonce ___init___ (init-tlds!))
 
-(defn- get-tld-from-url
-  "Extract TLD from a URL"
-  [url]
-  (some-> (re-find #"\.\w+$" url)
-          str/lower-case))
-
-(defn- trans-result-field-type
-  [result]
-  (map (fn [[k v]]
-         (cond
-           (#{:name-server
-              } k)
-           [k (set v)]
-
-           (#{:address
-              :remarks
-              :descr
-              :comment} k)
-           [k (str/join "\n" v)]
-
-           (= :domain-status k)
-           [k (set (map #(re-find #"^\w+" %) v))]
-           ;; 日期格式不统一
-           ;; (#{:updated-date
-           ;;    :creation-date
-           ;;    :registry-expiry-date
-           ;;    } k)
-           ;; [k (java-time/zoned-date-time (first v))]
-
-           ;; (#{:expiration-time
-           ;;    :registration-time
-           ;;    } k)
-           ;; [k (java-time/local-date-time "y-M-d H:m:s" (first v))]
-
-           (= 1 (count v))
-           [k (first v)]
-
-           :else [k (set v)]))
-       result))
-
-(defn- format-result
-  "格式化查询结果到map"
-  [r]
-  (->> r
-       (group-by first)
-       (map (fn [[k v]] [(-> (->kebab-case-string k)
-                             (str/replace #"/-" "|")
-                             keyword)
-                         (map second v)]))
-       (trans-result-field-type)
-       (into {})))
-
-(defn parse-result-lines
-  "解析结果行"
-  [rs]
-  (some->> (map #(-> (re-find #"(\S[\S ]+?): \s*(\S[\S ]+)" %1)
-                     rest) rs)
-           (filter first)
-           format-result))
-
-(defn- parse-result
-  [result]
-  (let [r1 (re-find #"(?s)(.*)>>>" result)
-        r (->> (if r1 (second r1) result)
-               (str-filter-line #"URL of the ICANN"))]
-    (parse-result-lines r)))
-
 (defn- get-whois-server
   [url]
   (-> (get-tld-from-url url)
@@ -201,11 +255,11 @@
          r)))))
 
 ;; ip whois
-(defn- get-rir-from-ip
+(defn- query-rir
   [ip opts]
-  (-> (query ip (assoc opts :whois-server iana-whois-server))
-      parse-iana-response
-      :whois))
+  (let [raw (query ip (assoc opts :whois-server iana-whois-server))]
+    (cond-> (parse-result raw)
+      (:raw opts) (assoc :raw raw))))
 
 (def arin-rir "whois.arin.net")
 
@@ -217,17 +271,15 @@
   [rir ip opts]
   (log/debug "rir server: " rir " query ip: " ip)
   (let [r (query (str "n + " ip) (assoc opts :whois-server rir))]
-    (cond-> (-> (str-filter-line #"^#" r)
-                parse-result-lines)
+    (cond->  (parse-result r)
       (:raw opts) (assoc :raw r))))
 
-;; 其它几个地区注释都是%开头的
+;; 其它几个地区
 (defmethod rir-query :default
   [rir ip opts]
   (log/debug "rir: " rir " query ip: " ip)
   (let [r (query ip (assoc opts :whois-server rir))]
-    (cond-> (-> (str-filter-line #"^%" r)
-                parse-result-lines)
+    (cond-> (parse-result r)
       (:raw opts) (assoc :raw r))))
 
 (defn whois-ip
@@ -238,5 +290,7 @@
 
   ([ip] (whois-ip ip nil))
   ([ip opts]
-   (some-> (get-rir-from-ip ip opts)
-           (rir-query ip opts))))
+   (let [rir (query-rir ip opts)]
+     (when rir
+       (assoc (rir-query (:whois rir) ip opts)
+              :iana rir)))))
